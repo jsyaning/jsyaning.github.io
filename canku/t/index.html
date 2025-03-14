@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纯前端短链接生成器-技术员阿宁版</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>短链接生成器</h2>
+        <input type="url" id="longUrl" placeholder="输入长链接（需包含http/https）">
+        <button onclick="generateShortUrl()">生成短链接</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // 生成短码（基于哈希算法）
+        function generateShortCode(longUrl) {
+            // 使用CRC32哈希生成6位短码（可替换为其他算法）
+            const hash = cyrb53(longUrl).toString(16).slice(0, 6);
+            return hash;
+        }
+
+        // 高性能哈希函数（替代MD5）
+        function cyrb53(str, seed = 0) {
+            let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+            for (let i = 0, ch; i < str.length; i++) {
+                ch = str.charCodeAt(i);
+                h1 = Math.imul(h1 ^ ch, 2654435761);
+                h2 = Math.imul(h2 ^ ch, 1597334677);
+            }
+            h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+            h2 = Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+            return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+        }
+
+        // 生成短链接
+        function generateShortUrl() {
+            const longUrl = document.getElementById('longUrl').value;
+            if (!longUrl.startsWith('http')) {
+                alert('请输入有效的URL（需包含http或https）');
+                return;
+            }
+
+            // 生成短码并存储到localStorage
+            const shortCode = generateShortCode(longUrl);
+            localStorage.setItem(shortCode, longUrl);
+
+            // 显示生成的短链接
+            const shortUrl = window.location.href.split('#')[0] + '#' + shortCode;
+            document.getElementById('result').innerHTML = `
+                <p>短链接：<a href="${shortUrl}" target="_blank">${shortUrl}</a></p>
+                <small>（仅当前浏览器有效，数据保存在本地）</small>
+            `;
+        }
+
+        // 自动处理重定向（页面加载时检查hash）
+        window.onload = function() {
+            const shortCode = window.location.hash.substring(1);
+            if (shortCode) {
+                const longUrl = localStorage.getItem(shortCode);
+                if (longUrl) {
+                    window.location.href = longUrl;
+                } else {
+                    alert('短链接无效或已过期');
+                }
+            }
+        };
+    </script>
+</body>
+</html>
