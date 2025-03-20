@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>青柠个人打赏页面</title>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e5e9ff 100%);
+            color: #2c3e50;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Cg fill-rule="evenodd"%3E%3Cg fill="%23dce1ff" fill-opacity="0.4"%3E%3Cpath d="M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        /* 标题样式 */
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(90deg, #3498db, #9b59b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 1px;
+        }
+
+        /* 段落样式 */
+        p {
+            font-size: 1.25rem;
+            color: #7f8c8d;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        /* 切换按钮容器样式 */
+        .tab-buttons {
+            display: flex;
+            gap: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 2rem;
+            padding: 0.5rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 3rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* 切换按钮样式 */
+        .tab-buttons button {
+            background-color: transparent;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            cursor: pointer;
+            border-radius: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        /* 激活状态的切换按钮样式 */
+        .tab-buttons button.active {
+            background: linear-gradient(90deg, #3498db, #9b59b6);
+            color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        /* 打赏容器样式 */
+        .reward-container {
+            perspective: 1500px;
+        }
+
+        /* 打赏项样式 */
+        .reward-item {
+            display: none;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 10px 20px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease;
+            transform-style: preserve-3d;
+            backdrop-filter: blur(15px);
+        }
+
+        /* 激活状态的打赏项样式 */
+        .reward-item.active {
+            display: block;
+        }
+
+        /* 打赏项图片样式 */
+        .reward-item img {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1), 0 6px 12px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .reward-item img:hover {
+            transform: scale(1.05);
+        }
+
+        /* 打赏项标题样式 */
+        .reward-item h3 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+
+        /* 打赏项段落样式 */
+        .reward-item p {
+            font-size: 1.125rem;
+            color: #7f8c8d;
+            margin-bottom: 0;
+        }
+
+        /* 淡入动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: rotateX(-45deg) translateZ(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: rotateX(0) translateZ(0);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="css2">
+</head>
+
+<body>
+    <h1>感谢您的支持！</h1>
+    <p>如果您觉得我的内容对您有帮助，可以通过以下方式进行打赏。您的每一份支持，都将激励我继续创作更优质的内容。</p>
+    <div class="tab-buttons">
+        <button class="active" onclick="showTab('wechat')">微信打赏</button>
+        <button onclick="showTab('alipay')">支付宝打赏</button>
+    </div>
+    <div class="reward-container">
+        <div id="wechat" class="reward-item active">
+            <img src="wx.jpg" alt="微信打赏二维码">
+            <h3>微信打赏</h3>
+            <p>打开微信扫一扫进行打赏</p>
+        </div>
+        <div id="alipay" class="reward-item">
+            <img src="zfb.jpg" alt="支付宝打赏二维码">
+            <h3>支付宝打赏</h3>
+            <p>打开支付宝扫一扫进行打赏</p>
+        </div>
+    </div>
+    <script>
+        function showTab(tabId) {
+            const tabButtons = document.querySelectorAll('.tab-buttons button');
+            const rewardItems = document.querySelectorAll('.reward-item');
+
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            rewardItems.forEach(item => {
+                item.classList.remove('active');
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            const activeButton = Array.from(tabButtons).find(button => button.onclick.toString().includes(tabId));
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+        }
+    </script>
+</body>
+
+</html>
