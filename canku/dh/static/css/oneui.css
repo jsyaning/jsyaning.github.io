@@ -9413,7 +9413,6 @@ a.item:focus {
 .ribbon-success .ribbon-box {
     border-radius: 15px;
   background-color: #46c37b;
-  display: none;
 }
 
 .ribbon-success.ribbon-bookmark .ribbon-box:before {

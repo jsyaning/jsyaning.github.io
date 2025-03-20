@@ -29,7 +29,7 @@ console.log("\n %c 素颜  %c https://api.suyanw.cn/ \n\n", "color:#f1ab0e;backg
                     200 < window.outerHeight - window.innerHeight && fuckyou()
                 };               
                 
-             var tx = new Array("欢迎访问青柠导航页", "本站API接口免费调用", "持续更新……", "等你探索", "谢谢访问", "调用第三方接口需自行承担风险", "站长QQ:1293296328"),
+             var tx = new Array("欢迎访问青柠导航页", "本站所有功能免费使用", "持续更新……", "等你探索", "谢谢访问", "调用第三方接口需自行承担风险", "站长QQ:1293296328"),
                     txcount = 4,
                     i = 1,
                     wo = 0,
