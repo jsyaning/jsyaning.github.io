@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上传文件夹</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #status {
+            margin-top: 20px;
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>上传整个文件夹目录</h1>
+    <input type="file" id="folderInput" webkitdirectory directory multiple>
+    <button id="uploadButton">上传</button>
+    <div id="status"></div>
+
+    <script>
+        document.getElementById('uploadButton').addEventListener('click', async () => {
+            const input = document.getElementById('folderInput');
+            const files = input.files;
+            if (files.length === 0) {
+                alert('请选择一个文件夹');
+                return;
+            }
+
+            const formData = new FormData();
+
+            async function processFile(file, path) {
+                formData.append(path, file);
+            }
+
+            async function processEntry(entry) {
+                if (entry.isFile) {
+                    const file = await entry.asFile();
+                    await processFile(file, entry.fullPath);
+                } else if (entry.isDirectory) {
+                    const entries = await entry.getEntries();
+                    for (const subEntry of entries) {
+                        await processEntry(subEntry);
+                    }
+                }
+            }
+
+            for (const file of files) {
+                const entry = file.webkitGetAsEntry();
+                if (entry) {
+                    await processEntry(entry);
+                }
+            }
+
+            try {
+                const response = await fetch('#', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (response.ok) {
+                    document.getElementById('status').textContent = '上传成功';
+                } else {
+                    document.getElementById('status').textContent = '上传失败';
+                }
+            } catch (error) {
+                document.getElementById('status').textContent = '发生错误: ' + error.message;
+            }
+        });
+    </script>
+</body>
+
+</html>
+    
