@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蓝奏云链接解析工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366F1',
+                        secondary: '#10B981',
+                        neutral: '#1F2937',
+                        accent: '#F59E0B',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .shadow-soft {
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50 min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-cloud-download text-primary text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-neutral">蓝奏云解析工具</h1>
+            </div>
+            <div class="text-gray-500 text-sm flex items-center">
+                <span id="api-source" class="hidden md:inline-block text-xs bg-gray-100 px-2 py-1 rounded mr-4">
+                    来源: https://qndh.pages.dev/
+                </span>
+                <span id="request-time"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main class="flex-grow container mx-auto px-4 py-8 md:py-16">
+        <div class="max-w-2xl mx-auto">
+            <!-- 介绍卡片 -->
+            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-8 shadow-soft">
+                <h2 class="text-xl font-semibold text-neutral mb-2">轻松解析蓝奏云链接</h2>
+                <p class="text-gray-600 text-sm">输入蓝奏云分享链接，获取直接下载地址，无需跳转即可下载文件。</p>
+            </div>
+            
+            <!-- 解析表单 -->
+            <div class="bg-white rounded-xl shadow-soft p-6 md:p-8 mb-8 transform hover:scale-[1.01] transition-custom">
+                <form id="parser-form" class="space-y-5">
+                    <div>
+                        <label for="url" class="block text-sm font-medium text-gray-700 mb-1">云盘链接 <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-link text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="url" 
+                                id="url" 
+                                name="url" 
+                                required
+                                placeholder="https://suyan8.lanzoub.com/..." 
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom outline-none"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">提取密码 (可选)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-lock text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="text" 
+                                id="password" 
+                                name="password" 
+                                placeholder="若有密码，请输入" 
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom outline-none"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <button 
+                            type="submit" 
+                            id="parse-btn"
+                            class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-custom flex items-center justify-center space-x-2 focus:ring-4 focus:ring-primary/20 focus:outline-none"
+                        >
+                            <i class="fa fa-search"></i>
+                            <span>解析链接</span>
+                            <div id="loading-indicator" class="hidden">
+                                <i class="fa fa-circle-o-notch fa-spin"></i>
+                            </div>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 结果展示区 -->
+            <div id="result-container" class="hidden bg-white rounded-xl shadow-soft p-6 md:p-8 transform transition-custom">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-neutral flex items-center">
+                        <i class="fa fa-check-circle text-secondary mr-2"></i>
+                        解析成功
+                    </h3>
+                    <span id="result-code" class="text-xs font-mono bg-gray-100 px-2 py-1 rounded"></span>
+                </div>
+                
+                <div class="border-t border-gray-100 pt-4 space-y-4">
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">文件名</p>
+                        <p id="file-name" class="font-medium text-neutral break-all"></p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">原始链接</p>
+                        <p id="original-url" class="text-sm text-gray-600 break-all font-mono"></p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">直接下载链接</p>
+                        <div class="flex">
+                            <input 
+                                type="text" 
+                                id="direct-url" 
+                                readonly 
+                                class="flex-grow bg-gray-50 border border-gray-200 rounded-l-lg px-3 py-2 text-sm font-mono overflow-x-auto focus:outline-none"
+                            >
+                            <button 
+                                id="copy-btn"
+                                class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-r-lg transition-custom"
+                            >
+                                <i class="fa fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-2 flex flex-wrap gap-3">
+                        <a 
+                            id="download-btn"
+                            href="" 
+                            target="_blank" 
+                            class="inline-flex items-center space-x-2 bg-secondary hover:bg-secondary/90 text-white font-medium py-2 px-4 rounded-lg transition-custom focus:ring-4 focus:ring-secondary/20 focus:outline-none"
+                        >
+                            <i class="fa fa-download"></i>
+                            <span>直接下载</span>
+                        </a>
+                        
+                        <button 
+                            id="refresh-btn"
+                            class="inline-flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-custom focus:outline-none"
+                        >
+                            <i class="fa fa-refresh"></i>
+                            <span>重新解析</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 错误提示区 -->
+            <div id="error-container" class="hidden bg-red-50 border border-red-100 rounded-xl p-6 md:p-8">
+                <div class="flex items-start">
+                    <i class="fa fa-exclamation-circle text-red-500 mt-1 mr-3 text-lg"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-red-800 mb-1">解析失败</h3>
+                        <p id="error-message" class="text-red-700 text-sm"></p>
+                        <p id="error-code" class="text-red-600 text-xs mt-2 font-mono"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>© 2023 蓝奏云解析工具 | 本工具仅用于学习交流</p>
+            <p class="mt-1">API 接口由第三方提供，使用时请遵守相关规定</p>
+        </div>
+    </footer>
+
+    <!-- 通知提示 -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-neutral text-white px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-custom flex items-center space-x-2 z-50">
+        <i id="toast-icon" class="fa fa-check"></i>
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        // DOM 元素
+        const form = document.getElementById('parser-form');
+        const urlInput = document.getElementById('url');
+        const passwordInput = document.getElementById('password');
+        const parseBtn = document.getElementById('parse-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultContainer = document.getElementById('result-container');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        const errorCode = document.getElementById('error-code');
+        const fileNameElement = document.getElementById('file-name');
+        const originalUrlElement = document.getElementById('original-url');
+        const directUrlElement = document.getElementById('direct-url');
+        const downloadBtn = document.getElementById('download-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const resultCodeElement = document.getElementById('result-code');
+        const requestTimeElement = document.getElementById('request-time');
+        const toast = document.getElementById('toast');
+        const toastIcon = document.getElementById('toast-icon');
+        const toastMessage = document.getElementById('toast-message');
+        
+        // API 地址
+        const API_URL = 'https://api.suyanw.cn/api/lanzou.php';
+        
+        // 更新当前时间
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            requestTimeElement.textContent = timeString;
+        }
+        
+        // 初始化时间并定时更新
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+        
+        // 表单提交事件
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await parseLink();
+        });
+        
+        // 重新解析按钮
+        refreshBtn.addEventListener('click', async () => {
+            await parseLink();
+        });
+        
+        // 解析链接函数
+        async function parseLink() {
+            // 获取输入值
+            const url = urlInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            // 验证输入
+            if (!url) {
+                showToast('请输入云盘链接', 'error');
+                urlInput.focus();
+                return;
+            }
+            
+            // 显示加载状态
+            showLoading(true);
+            hideResults();
+            hideError();
+            
+            try {
+                // 构建请求 URL
+                let requestUrl = `${API_URL}?url=${encodeURIComponent(url)}`;
+                if (password) {
+                    requestUrl += `&password=${encodeURIComponent(password)}`;
+                }
+                
+                // 发送请求
+                const response = await fetch(requestUrl);
+                const data = await response.json();
+                
+                // 处理响应
+                if (data.code === 200 || data.code === '200') {
+                    // 更新请求时间
+                    requestTimeElement.textContent = data.time || new Date().toLocaleString();
+                    
+                    // 显示结果
+                    resultCodeElement.textContent = `Code: ${data.code}`;
+                    fileNameElement.textContent = data.data?.filename || '未知文件名';
+                    originalUrlElement.textContent = data.data?.url || url;
+                    directUrlElement.value = data.data?.drive_url || '';
+                    downloadBtn.href = data.data?.drive_url || '';
+                    showResults();
+                    showToast('解析成功', 'success');
+                } else {
+                    // 显示错误信息
+                    showError(
+                        data.msg || '解析失败，请检查链接和密码是否正确',
+                        data.code
+                    );
+                }
+            } catch (error) {
+                console.error('解析出错:', error);
+                showError('网络错误，无法连接到服务器', 'E500');
+            } finally {
+                // 隐藏加载状态
+                showLoading(false);
+            }
+        }
+        
+        // 复制链接按钮
+        copyBtn.addEventListener('click', () => {
+            directUrlElement.select();
+            document.execCommand('copy');
+            showToast('链接已复制到剪贴板', 'success');
+        });
+        
+        // 显示/隐藏加载状态
+        function showLoading(show) {
+            if (show) {
+                parseBtn.disabled = true;
+                parseBtn.querySelector('span').textContent = '解析中';
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                parseBtn.disabled = false;
+                parseBtn.querySelector('span').textContent = '解析链接';
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+        
+        // 显示结果
+        function showResults() {
+            resultContainer.classList.remove('hidden');
+            resultContainer.classList.add('opacity-100');
+        }
+        
+        // 隐藏结果
+        function hideResults() {
+            resultContainer.classList.add('hidden');
+            resultContainer.classList.remove('opacity-100');
+        }
+        
+        // 显示错误
+        function showError(message, code = '') {
+            errorMessage.textContent = message;
+            errorCode.textContent = code ? `错误代码: ${code}` : '';
+            errorContainer.classList.remove('hidden');
+        }
+        
+        // 隐藏错误
+        function hideError() {
+            errorContainer.classList.add('hidden');
+        }
+        
+        // 显示提示消息
+        function showToast(message, type = 'info') {
+            toastMessage.textContent = message;
+            
+            // 设置图标和样式
+            if (type === 'success') {
+                toastIcon.className = 'fa fa-check text-green-400';
+                toast.classList.add('bg-green-800');
+                toast.classList.remove('bg-red-800', 'bg-blue-800');
+            } else if (type === 'error') {
+                toastIcon.className = 'fa fa-exclamation-circle text-red-400';
+                toast.classList.add('bg-red-800');
+                toast.classList.remove('bg-green-800', 'bg-blue-800');
+            } else {
+                toastIcon.className = 'fa fa-info-circle text-blue-400';
+                toast.classList.add('bg-blue-800');
+                toast.classList.remove('bg-green-800', 'bg-red-800');
+            }
+            
+            // 显示提示
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            // 3秒后隐藏
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

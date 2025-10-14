@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>城通网盘直接API访问工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .shadow-soft {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            }
+            .transition-custom {
+                transition: all 0.2s ease;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen py-8 px-4">
+    <div class="max-w-md mx-auto">
+        <!-- 标题区域 -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">城通网盘API访问工具</h1>
+            <p class="text-gray-500 mt-2">生成包含原始链接格式的API访问地址</p>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="bg-white rounded-xl shadow-soft p-6">
+            <!-- 输入表单 -->
+            <form id="api-form" class="space-y-4">
+                <div>
+                    <label for="ctfile-url" class="block text-sm font-medium text-gray-700 mb-1">城通网盘链接 <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa fa-link text-gray-400"></i>
+                        </div>
+                        <input 
+                            type="url" 
+                            id="ctfile-url" 
+                            required
+                            placeholder="https://url06.ctfile.com/f/..." 
+                            value=""
+                            class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom outline-none"
+                        >
+                    </div>
+                </div>
+                
+                <div>
+                    <button 
+                        type="submit" 
+                        class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2.5 px-4 rounded-lg transition-custom flex items-center justify-center"
+                    >
+                        <i class="fa fa-external-link mr-2"></i>
+                        <span>直接访问API</span>
+                    </button>
+                </div>
+            </form>
+            
+            <!-- 链接显示区 -->
+            <div id="link-display" class="mt-6 hidden">
+                <div class="border-t border-gray-100 pt-4">
+                    <p class="text-sm text-gray-500 mb-2">API访问链接 (包含原始格式):</p>
+                    <div class="flex">
+                        <input 
+                            type="text" 
+                            id="api-url" 
+                            readonly 
+                            class="flex-grow bg-gray-50 border border-gray-200 rounded-l-lg px-3 py-2 text-sm font-mono overflow-x-auto focus:outline-none"
+                        >
+                        <button 
+                            id="copy-btn"
+                            class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-r-lg transition-custom"
+                        >
+                            <i class="fa fa-copy"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                        <p>此链接包含原始格式的城通网盘地址，点击按钮将在新窗口打开API获取结果</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 说明区域 -->
+        <div class="mt-4 text-xs text-gray-500 bg-gray-100 p-3 rounded-lg">
+            <p class="font-medium mb-1">注意事项：</p>
+            <ul class="list-disc pl-4 space-y-1">
+                <li>生成的API链接将包含未编码的原始网盘地址</li>
+                <li>点击"直接访问API"按钮将在新窗口打开链接</li>
+                <li>在新窗口中可直接获取JSON格式的解析结果</li>
+                <li>这种方式可以避开跨域访问限制问题</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 通知提示 -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg transform translate-y-10 opacity-0 transition-custom flex items-center space-x-2 z-10">
+        <i id="toast-icon" class="fa fa-check"></i>
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        // DOM元素
+        const form = document.getElementById('api-form');
+        const ctfileUrlInput = document.getElementById('ctfile-url');
+        const linkDisplay = document.getElementById('link-display');
+        const apiUrlElement = document.getElementById('api-url');
+        const copyBtn = document.getElementById('copy-btn');
+        const toast = document.getElementById('toast');
+        const toastIcon = document.getElementById('toast-icon');
+        const toastMessage = document.getElementById('toast-message');
+        
+        // API基础地址
+        const API_BASE_URL = 'https://api.suyanw.cn/api/chengtongwp_jiexi.php';
+        
+        // 城通网盘URL验证正则
+        const CTFILE_REGEX = /^https?:\/\/url\d+\.ctfile\.com\/f\/[a-zA-Z0-9-]+\?p=\w+(&pwd=\w+)?$/;
+        
+        // 表单提交事件
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            generateAndOpenApiLink();
+        });
+        
+        // 复制按钮事件
+        copyBtn.addEventListener('click', () => {
+            apiUrlElement.select();
+            document.execCommand('copy');
+            showToast('API链接已复制', 'success');
+        });
+        
+        // 生成并打开API链接
+        function generateAndOpenApiLink() {
+            const ctfileUrl = ctfileUrlInput.value.trim();
+            
+            // 验证输入
+            if (!ctfileUrl) {
+                showToast('请输入城通网盘链接', 'error');
+                ctfileUrlInput.focus();
+                return;
+            }
+            
+            if (!CTFILE_REGEX.test(ctfileUrl)) {
+                showToast('请输入正确格式的城通网盘链接', 'error');
+                ctfileUrlInput.focus();
+                return;
+            }
+            
+            // 构建API链接 - 使用原始格式，不进行编码
+            const apiLink = `${API_BASE_URL}?url=${ctfileUrl}`;
+            
+            // 显示链接
+            apiUrlElement.value = apiLink;
+            linkDisplay.classList.remove('hidden');
+            
+            // 在新窗口打开API链接
+            window.open(apiLink, '_blank');
+            
+            showToast('已在新窗口打开API链接', 'success');
+        }
+        
+        // 显示提示消息
+        function showToast(message, type = 'info') {
+            toastMessage.textContent = message;
+            
+            // 设置图标
+            if (type === 'success') {
+                toastIcon.className = 'fa fa-check text-green-400';
+            } else if (type === 'error') {
+                toastIcon.className = 'fa fa-exclamation-circle text-red-400';
+            } else {
+                toastIcon.className = 'fa fa-info-circle text-blue-400';
+            }
+            
+            // 显示提示
+            toast.classList.remove('translate-y-10', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            // 2秒后隐藏
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
