@@ -1,0 +1,261 @@
+.p_top {
+    text-align: center;
+    background-color: #5eaefc;
+    color: #fff;
+    padding: 5px;
+}
+
+.int {
+    max-width: 60%;
+    width: 450px;
+    height: 30px;
+    margin-bottom: 10px;
+    border: 1px solid #4bb3ea;
+    font-size: 14px;
+    font-family: 微软雅黑;
+    font-weight: 500;
+    padding-left: 10px;
+}
+
+.fk_service {
+    max-height: 232px;
+    position: fixed;
+    right: 10px;
+    top: 65%;
+    /* 垂直位置 */
+    font-family: 'FontAwesome';
+    font-size: 14px;
+    color: #243558;
+    z-index: 10000
+}
+
+.fk_service ul {
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    right: 0
+}
+
+.fk_service li {
+    list-style-type: none
+}
+
+.fk_service li>div {
+    box-sizing: border-box;
+    box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.1)
+}
+
+.fk_service_box {
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    box-shadow: 0 0 9px 0 rgba(0, 0, 0, 0.1)
+}
+
+.fk_service_triangle {
+    top: 12px;
+    right: -11px;
+    position: absolute;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 11px solid #e1e6ec;
+    z-index: 1010
+}
+
+.fk_service_triangle:after {
+    content: "\20";
+    top: -6px;
+    right: 1px;
+    position: absolute;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 10px solid #fff;
+    z-index: 1000
+}
+
+.fk_service_triangle:before {
+    content: "\20";
+    width: 80px;
+    height: 45px;
+    top: -20px;
+    right: -52px;
+    position: absolute;
+    background: rgba(0, 0, 0, 0)
+}
+
+@keyframes fade-in {
+    0% {
+        opacity: .4;
+        right: 82px
+    }
+
+    100% {
+        opacity: 1;
+        right: 62px
+    }
+}
+
+.fk_service_consult {
+    background: url(../fonts/f8b3331bde06400a9b54bef8bdc3d6f5.svg);
+}
+
+#donateBox #AliPay {
+	background-image: url(../fonts/alipay.svg);
+}
+#donateBox #WeChat {
+	background-image: url(../fonts/wechat.svg);
+}
+#QRBox {
+	top: 0;
+	right: 50px;
+	z-index: 1;
+	bottom: 100px;
+	/*background-color: rgba(255,255,255,0.3);*/
+	display: none;
+   perspective: 400px;
+	-webkit-touch-callout: none;
+}
+#MainBox {
+	cursor: pointer;
+	position: absolute;
+	text-align: center;
+	width: 200px;
+	height: 200px;
+	left: calc(50% - 100px);
+	top: calc(50% - 100px);
+	background: #fff no-repeat center center;
+	background-size: 190px;
+	border-radius: 6px;
+	box-shadow: 0px 2px 7px rgba(0,0,0,0.3);
+    opacity: 0;
+	transition: all 1s ease-in-out;
+	transform-style: preserve-3d;
+    transform-origin: center center;
+    overflow: hidden;
+	-webkit-touch-callout: none;
+}
+#btc-key {
+	opacity: 0;
+	width: 2px;
+	height: 8px;
+	overflow: hidden;
+	left: -2px;
+	top: -8px;
+}
+
+[data-footnote] {
+	position: relative;
+	overflow: hidden;
+}
+[data-footnote]:hover {
+	overflow: visible;
+}
+[data-footnote]::before, [data-footnote]::after {
+	position: absolute;
+	transition: all .3s;
+	transform: translate3d(-50%,0,0);
+	opacity: 0;
+	left: 37px;
+	z-index: 10;
+}
+[data-footnote]::before {
+	content: attr(data-footnote);
+	border-radius: 6px;
+	background-color: rgba(100,100,100,0.8);
+	color: #fff;
+	height: 24px;
+	line-height: 24px;
+	padding: 0 6px;
+	font-size: 12px;
+	white-space: nowrap;
+	top: -24px;
+	left: 37px;
+}
+[data-footnote]::after {
+	content: '';
+	border: 5px solid #333;
+	border-color: rgba(100,100,100,0.8) transparent transparent transparent;
+	top: 0;
+	left: 37px;
+}
+[data-footnote]:hover::before,[data-footnote]:hover::after {
+	opacity: 1;
+}
+[data-footnote]:hover::before,[data-footnote]:hover::after {
+	transform: translate3d(-50%,-7px,0);
+}
+
+#MainBox.showQR {
+	opacity: 1;
+    animation-name:showQR;
+    animation-duration:3s;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:1;
+    animation-fill-mode:forwards;
+    -webkit-animation:showQR 3s ease-in-out 0s 1 normal forwards;
+	-webkit-touch-callout: none;
+}
+@keyframes showQR {
+	from {
+		transform: rotateX(90deg);
+	}
+	8% {
+		opacity: 1;
+		transform: rotateX(-60deg);
+	}
+	18% {
+		opacity: 1;
+		transform: rotateX(40deg);
+	}
+	34% {
+		opacity: 1;
+		transform: rotateX(-28deg);
+	}
+	44% {
+		opacity: 1;
+		transform: rotateX(18deg);
+	}
+	58% {
+		opacity: 1;
+		transform: rotateX(-12deg);
+	}
+	72% {
+		opacity: 1;
+		transform: rotateX(9deg);
+	}
+	88% {
+		opacity: 1;
+		transform: rotateX(-5deg);
+	}
+	96% {
+		opacity: 1;
+		transform: rotateX(2deg);
+	}
+	to {
+		opacity: 1;
+	}
+}
+#MainBox.hideQR {
+	opacity: 1;
+    animation-name:hideQR;
+    animation-duration:0.5s;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:1;
+    animation-fill-mode:forwards;
+    -webkit-animation:hideQR 0.5s ease-in-out 0s 1 normal forwards;
+}
+@keyframes hideQR {
+	from {
+	}
+	20%,50% {
+		transform: scale(1.08,1.08);
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+		transform: rotateZ(40deg) scale(0.6,0.6);
+	}
+}
