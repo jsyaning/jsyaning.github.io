@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书视频图文聚合解析工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#ff2442', // 小红书主题色
+                        secondary: '#36b37e',
+                        neutral: '#1F2937',
+                        accent: '#8B5CF6',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .shadow-soft {
+                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .image-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 0.5rem;
+            }
+            .image-grid-item {
+                aspect-ratio: 1/1;
+                overflow: hidden;
+                border-radius: 0.375rem;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50 min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-book text-primary text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-neutral">小红书解析工具</h1>
+            </div>
+            <div class="text-gray-500 text-sm">
+                <span id="total-calls" class="hidden md:inline-block mr-4">总调用: 0次</span>
+                <span id="today-calls">今日调用: 0次</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main class="flex-grow container mx-auto px-4 py-8 md:py-16">
+        <div class="max-w-2xl mx-auto">
+            <!-- 介绍卡片 -->
+            <div class="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-6 mb-8 shadow-soft">
+                <h2 class="text-xl font-semibold text-neutral mb-2">轻松解析小红书内容</h2>
+                <p class="text-gray-600 text-sm">输入小红书视频或图文链接，获取无水印内容，方便保存和分享。</p>
+            </div>
+            
+            <!-- 解析表单 -->
+            <div class="bg-white rounded-xl shadow-soft p-6 md:p-8 mb-8 transform hover:scale-[1.01] transition-custom">
+                <form id="parser-form" class="space-y-5">
+                    <div>
+                        <label for="url" class="block text-sm font-medium text-gray-700 mb-1">小红书链接 <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-link text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="url" 
+                                id="url" 
+                                name="url" 
+                                required
+                                placeholder="https://xhslink.com/..." 
+                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-custom outline-none"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <button 
+                            type="submit" 
+                            id="parse-btn"
+                            class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-custom flex items-center justify-center space-x-2 focus:ring-4 focus:ring-primary/20 focus:outline-none"
+                        >
+                            <i class="fa fa-search"></i>
+                            <span>解析内容</span>
+                            <div id="loading-indicator" class="hidden">
+                                <i class="fa fa-circle-o-notch fa-spin"></i>
+                            </div>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 结果展示区 -->
+            <div id="result-container" class="hidden bg-white rounded-xl shadow-soft p-6 md:p-8 transform transition-custom">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-neutral flex items-center">
+                        <i class="fa fa-check-circle text-secondary mr-2"></i>
+                        解析成功
+                    </h3>
+                    <span id="result-code" class="text-xs font-mono bg-gray-100 px-2 py-1 rounded"></span>
+                </div>
+                
+                <div class="text-xs text-gray-400 mb-4 text-right">
+                    <!-- <span id="api-source">数据来源: 素颜API</span> -->
+                </div>
+                
+                <div class="border-t border-gray-100 pt-4 space-y-6">
+                    <!-- 作者信息 -->
+                    <div class="flex items-center space-x-3">
+                        <img id="author-avatar" src="" alt="作者头像" class="w-12 h-12 rounded-full object-cover">
+                        <div>
+                            <p id="author-name" class="font-medium text-neutral"></p>
+                            <p id="author-id" class="text-xs text-gray-500"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- 作品信息 -->
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">作品标题</p>
+                        <p id="work-title" class="font-medium text-neutral"></p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">作品介绍</p>
+                        <p id="work-description" class="text-gray-600 text-sm bg-gray-50 p-3 rounded-lg"></p>
+                    </div>
+                    
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">内容类型</p>
+                        <p id="work-type" class="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm"></p>
+                    </div>
+                    
+                    <!-- 图片展示区 - 支持多图 -->
+                    <div id="images-container">
+                        <p class="text-sm text-gray-500 mb-1">
+                            图片 <span id="image-count" class="text-xs bg-gray-100 px-1 rounded"></span>
+                        </p>
+                        <div id="image-grid" class="image-grid border border-gray-100 rounded-lg p-2"></div>
+                    </div>
+                    
+                    <!-- 视频展示区 -->
+                    <div id="video-container" class="hidden">
+                        <p class="text-sm text-gray-500 mb-1">视频预览</p>
+                        <div class="border border-gray-100 rounded-lg overflow-hidden">
+                            <video id="video-player" controls class="w-full h-auto">
+                                您的浏览器不支持视频播放
+                            </video>
+                        </div>
+                    </div>
+                    
+                    <!-- 无水印链接 -->
+                    <div id="urls-container" class="space-y-4">
+                        <!-- 视频链接 -->
+                        <div id="video-url-container" class="hidden">
+                            <p class="text-sm text-gray-500 mb-1">无水印视频链接</p>
+                            <div class="flex">
+                                <input 
+                                    type="text" 
+                                    id="video-url" 
+                                    readonly 
+                                    class="flex-grow bg-gray-50 border border-gray-200 rounded-l-lg px-3 py-2 text-sm font-mono overflow-x-auto focus:outline-none"
+                                >
+                                <button 
+                                    id="copy-video-btn"
+                                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-r-lg transition-custom"
+                                >
+                                    <i class="fa fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 图片打包下载链接 -->
+                        <div id="images-download-container">
+                            <p class="text-sm text-gray-500 mb-1">图片打包下载</p>
+                            <div class="flex">
+                                <input 
+                                    type="text" 
+                                    id="images-download-url" 
+                                    readonly 
+                                    class="flex-grow bg-gray-50 border border-gray-200 rounded-l-lg px-3 py-2 text-sm font-mono overflow-x-auto focus:outline-none"
+                                >
+                                <button 
+                                    id="copy-images-btn"
+                                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-r-lg transition-custom"
+                                >
+                                    <i class="fa fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-2 flex flex-wrap gap-3">
+                        <a 
+                            id="download-btn"
+                            href="" 
+                            target="_blank" 
+                            class="inline-flex items-center space-x-2 bg-secondary hover:bg-secondary/90 text-white font-medium py-2 px-4 rounded-lg transition-custom focus:ring-4 focus:ring-secondary/20 focus:outline-none"
+                        >
+                            <i class="fa fa-download"></i>
+                            <span>下载内容</span>
+                        </a>
+                        
+                        <button 
+                            id="save-all-btn"
+                            class="inline-flex items-center space-x-2 bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-custom focus:ring-4 focus:ring-primary/20 focus:outline-none"
+                        >
+                            <i class="fa fa-save"></i>
+                            <span>保存全部</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 错误提示区 -->
+            <div id="error-container" class="hidden bg-red-50 border border-red-100 rounded-xl p-6 md:p-8">
+                <div class="flex items-start">
+                    <i class="fa fa-exclamation-circle text-red-500 mt-1 mr-3 text-lg"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold text-red-800 mb-1">解析失败</h3>
+                        <p id="error-message" class="text-red-700 text-sm"></p>
+                        <div class="mt-3 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                            <p class="font-medium mb-1">错误码参考：</p>
+                            <ul class="list-disc pl-4 space-y-1">
+                                <li>200：解析成功</li>
+                                <li>400：参数错误（链接不能为空）</li>
+                                <li>403：链接解析失败（链接无效或已过期）</li>
+                                <li>500：服务器错误</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>© 2023 小红书解析工具 | 本工具仅用于学习交流</p>
+            <p class="mt-1">API 接口由第三方提供，使用时请遵守相关规定</p>
+        </div>
+    </footer>
+
+    <!-- 通知提示 -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-neutral text-white px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-custom flex items-center space-x-2 z-50">
+        <i id="toast-icon" class="fa fa-check"></i>
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        // DOM 元素
+        const form = document.getElementById('parser-form');
+        const urlInput = document.getElementById('url');
+        const parseBtn = document.getElementById('parse-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultContainer = document.getElementById('result-container');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        const resultCodeElement = document.getElementById('result-code');
+        const apiSourceElement = document.getElementById('api-source');
+        const authorAvatarElement = document.getElementById('author-avatar');
+        const authorNameElement = document.getElementById('author-name');
+        const authorIdElement = document.getElementById('author-id');
+        const workTitleElement = document.getElementById('work-title');
+        const workDescriptionElement = document.getElementById('work-description');
+        const workTypeElement = document.getElementById('work-type');
+        const imageCountElement = document.getElementById('image-count');
+        const imageGridElement = document.getElementById('image-grid');
+        const imagesContainer = document.getElementById('images-container');
+        const videoContainer = document.getElementById('video-container');
+        const videoPlayerElement = document.getElementById('video-player');
+        const videoUrlContainer = document.getElementById('video-url-container');
+        const videoUrlElement = document.getElementById('video-url');
+        const imagesDownloadContainer = document.getElementById('images-download-container');
+        const imagesDownloadUrlElement = document.getElementById('images-download-url');
+        const downloadBtn = document.getElementById('download-btn');
+        const saveAllBtn = document.getElementById('save-all-btn');
+        const copyVideoBtn = document.getElementById('copy-video-btn');
+        const copyImagesBtn = document.getElementById('copy-images-btn');
+        const toast = document.getElementById('toast');
+        const toastIcon = document.getElementById('toast-icon');
+        const toastMessage = document.getElementById('toast-message');
+        
+        // 存储当前解析的媒体数据
+        let currentMediaData = null;
+        
+        // API 地址 - 小红书解析接口
+        const API_URL = 'https://api.7rai.cc/cors.php?url=https://api.suyanw.cn/api/xhs.php';
+        
+        // 表单提交事件
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // 获取输入值
+            const url = urlInput.value.trim();
+            
+            // 验证输入
+            if (!url) {
+                showToast('请输入小红书链接', 'error');
+                urlInput.focus();
+                return;
+            }
+            
+            // 显示加载状态
+            showLoading(true);
+            hideResults();
+            hideError();
+            
+            try {
+                // 构建请求 URL
+                const requestUrl = `${API_URL}?url=${encodeURIComponent(url)}`;
+                
+                // 发送请求
+                const response = await fetch(requestUrl);
+                const data = await response.json();
+                
+                // 存储当前媒体数据
+                currentMediaData = data;
+                
+                // 处理响应
+                if (data.code === 200 || data.code === '200') {
+                    // 显示结果
+                    resultCodeElement.textContent = `Code: ${data.code}`;
+                    // apiSourceElement.textContent = `数据来源: ${data.api_source || '未知'}`;
+                    
+                    // 填充作者信息
+                    authorAvatarElement.src = data.data.avatar || '';
+                    authorAvatarElement.alt = data.data.author || '作者头像';
+                    authorNameElement.textContent = data.data.author || '未知作者';
+                    authorIdElement.textContent = `ID: ${data.data.uid || '未知'}`;
+                    
+                    // 填充作品信息
+                    workTitleElement.textContent = data.data.title || '无标题';
+                    workDescriptionElement.textContent = data.data.desc || '无描述';
+                    workTypeElement.textContent = data.data.type === 'image' ? '图文' : '视频';
+                    
+                    // 根据内容类型显示不同内容
+                    if (data.data.type === 'image') {
+                        // 处理图文内容
+                        handleImageContent(data.data);
+                    } else {
+                        // 处理视频内容
+                        handleVideoContent(data.data);
+                    }
+                    
+                    showResults();
+                    showToast('解析成功', 'success');
+                    
+                    // 更新调用次数
+                    updateCallCounts();
+                } else {
+                    // 显示错误信息
+                    let errorText = data.msg || '解析失败，请检查链接是否正确';
+                    // 补充错误码信息
+                    errorText += ` (错误码: ${data.code})`;
+                    showError(errorText);
+                }
+            } catch (error) {
+                console.error('解析出错:', error);
+                showError('网络错误，无法连接到服务器');
+            } finally {
+                // 隐藏加载状态
+                showLoading(false);
+            }
+        });
+        
+        // 处理图文内容
+        function handleImageContent(data) {
+            // 隐藏视频相关区域，显示图片相关区域
+            videoContainer.classList.add('hidden');
+            videoUrlContainer.classList.add('hidden');
+            imagesContainer.classList.remove('hidden');
+            imagesDownloadContainer.classList.remove('hidden');
+            
+            // 显示图片数量
+            imageCountElement.textContent = `(${data.image_count || 0}张)`;
+            
+            // 清空图片网格
+            imageGridElement.innerHTML = '';
+            
+            // 添加图片到网格
+            if (data.images && data.images.length > 0) {
+                data.images.forEach((imgUrl, index) => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'image-grid-item relative group cursor-pointer';
+                    
+                    const img = document.createElement('img');
+                    img.src = imgUrl;
+                    img.alt = `图片 ${index + 1}`;
+                    img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
+                    
+                    const imgIndex = document.createElement('div');
+                    imgIndex.className = 'absolute top-1 right-1 bg-black/60 text-white text-xs px-1 rounded';
+                    imgIndex.textContent = index + 1;
+                    
+                    // 点击图片放大查看
+                    imgContainer.addEventListener('click', () => {
+                        openImageViewer(imgUrl, index, data.images);
+                    });
+                    
+                    // 添加单张图片下载按钮
+                    const downloadBtn = document.createElement('button');
+                    downloadBtn.className = 'absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity';
+                    downloadBtn.innerHTML = '<i class="fa fa-download mr-1"></i>下载';
+                    downloadBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        downloadImage(imgUrl, index + 1);
+                    };
+                    
+                    imgContainer.appendChild(img);
+                    imgContainer.appendChild(imgIndex);
+                    imgContainer.appendChild(downloadBtn);
+                    imageGridElement.appendChild(imgContainer);
+                });
+                
+                // 设置下载链接
+                imagesDownloadUrlElement.value = data.url || '无下载链接';
+                downloadBtn.href = data.url || '#';
+                downloadBtn.querySelector('span').textContent = '下载全部图片';
+                
+                // 如果没有打包下载链接，禁用按钮并提示
+                if (!data.url) {
+                    downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    downloadBtn.removeAttribute('href');
+                    downloadBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showToast('没有可用的打包下载链接，请单张下载', 'info');
+                    });
+                } else {
+                    downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                // 没有图片时显示提示
+                imageGridElement.innerHTML = '<p class="col-span-full text-center py-6 text-gray-500">没有图片数据</p>';
+                imagesDownloadUrlElement.value = '无图片下载链接';
+                downloadBtn.href = '#';
+                downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                downloadBtn.addEventListener('click', (e) => e.preventDefault());
+            }
+        }
+        
+        // 处理视频内容
+        function handleVideoContent(data) {
+            // 隐藏图片相关区域，显示视频相关区域
+            imagesContainer.classList.add('hidden');
+            imagesDownloadContainer.classList.add('hidden');
+            videoContainer.classList.remove('hidden');
+            videoUrlContainer.classList.remove('hidden');
+            
+            // 设置视频源
+            videoPlayerElement.src = data.url || '';
+            
+            // 设置视频链接
+            videoUrlElement.value = data.url || '无视频链接';
+            
+            // 设置下载按钮
+            downloadBtn.href = data.url || '#';
+            downloadBtn.querySelector('span').textContent = '下载视频';
+            
+            // 如果有封面图，设置为视频封面
+            if (data.cover) {
+                videoPlayerElement.poster = data.cover;
+            }
+            
+            // 如果没有视频链接，禁用按钮并提示
+            if (!data.url) {
+                downloadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                downloadBtn.removeAttribute('href');
+                downloadBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showToast('没有可用的视频下载链接', 'error');
+                });
+            } else {
+                downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+        
+        // 下载单个图片
+        function downloadImage(url, index) {
+            if (!url) {
+                showToast('图片链接无效', 'error');
+                return;
+            }
+            
+            // 创建临时链接并触发下载
+            fetch(url)
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `image_${index}.jpg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showToast(`图片 ${index} 下载已开始`, 'success');
+                })
+                .catch(error => {
+                    console.error('图片下载失败:', error);
+                    showToast('图片下载失败，请重试', 'error');
+                });
+        }
+        
+        // 打开图片查看器
+        function openImageViewer(initialUrl, initialIndex, allImages) {
+            // 创建图片查看器
+            const viewer = document.createElement('div');
+            viewer.className = 'fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4';
+            viewer.id = 'image-viewer';
+            
+            // 图片容器
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'max-w-full max-h-[80vh]';
+            
+            // 图片元素
+            const img = document.createElement('img');
+            img.src = initialUrl;
+            img.className = 'max-w-full max-h-[80vh] object-contain';
+            img.alt = `查看图片 ${initialIndex + 1}`;
+            
+            // 关闭按钮
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'absolute top-4 right-4 text-white text-2xl hover:text-gray-300';
+            closeBtn.innerHTML = '<i class="fa fa-times"></i>';
+            closeBtn.onclick = () => viewer.remove();
+            
+            // 导航按钮
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300';
+            prevBtn.innerHTML = '<i class="fa fa-chevron-left"></i>';
+            prevBtn.onclick = (e) => {
+                e.stopPropagation();
+                const newIndex = (initialIndex - 1 + allImages.length) % allImages.length;
+                viewer.remove();
+                openImageViewer(allImages[newIndex], newIndex, allImages);
+            };
+            
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl hover:text-gray-300';
+            nextBtn.innerHTML = '<i class="fa fa-chevron-right"></i>';
+            nextBtn.onclick = (e) => {
+                e.stopPropagation();
+                const newIndex = (initialIndex + 1) % allImages.length;
+                viewer.remove();
+                openImageViewer(allImages[newIndex], newIndex, allImages);
+            };
+            
+            // 图片计数
+            const counter = document.createElement('div');
+            counter.className = 'absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-sm';
+            counter.textContent = `${initialIndex + 1} / ${allImages.length}`;
+			
+			// 查看器中的下载按钮
+			const downloadBtn = document.createElement('button');
+			downloadBtn.className = 'absolute bottom-4 left-4 bg-black/60 text-white px-3 py-1 rounded-full text-sm flex items-center';
+			downloadBtn.innerHTML = '<i class="fa fa-download mr-1"></i> 下载图片';
+			downloadBtn.onclick = (e) => {
+				e.stopPropagation();
+				downloadImage(initialUrl, initialIndex + 1);
+			};
+            
+            // 组装查看器
+            imgContainer.appendChild(img);
+            viewer.appendChild(imgContainer);
+            viewer.appendChild(closeBtn);
+            viewer.appendChild(prevBtn);
+            viewer.appendChild(nextBtn);
+            viewer.appendChild(counter);
+			viewer.appendChild(downloadBtn);
+            
+            // 点击背景关闭
+            viewer.addEventListener('click', (e) => {
+                if (e.target === viewer) {
+                    viewer.remove();
+                }
+            });
+            
+            // 键盘导航
+            const handleKeyDown = (e) => {
+                if (e.key === 'Escape') {
+                    viewer.remove();
+                    document.removeEventListener('keydown', handleKeyDown);
+                } else if (e.key === 'ArrowLeft') {
+                    const newIndex = (initialIndex - 1 + allImages.length) % allImages.length;
+                    viewer.remove();
+                    document.removeEventListener('keydown', handleKeyDown);
+                    openImageViewer(allImages[newIndex], newIndex, allImages);
+                } else if (e.key === 'ArrowRight') {
+                    const newIndex = (initialIndex + 1) % allImages.length;
+                    viewer.remove();
+                    document.removeEventListener('keydown', handleKeyDown);
+                    openImageViewer(allImages[newIndex], newIndex, allImages);
+                }
+            };
+            
+            document.addEventListener('keydown', handleKeyDown);
+            
+            // 添加到页面
+            document.body.appendChild(viewer);
+        }
+        
+        // 复制视频链接
+        copyVideoBtn.addEventListener('click', () => {
+            if (videoUrlElement.value) {
+                videoUrlElement.select();
+                document.execCommand('copy');
+                showToast('视频链接已复制，您可以粘贴到下载工具中使用', 'success');
+            } else {
+                showToast('没有可复制的链接', 'error');
+            }
+        });
+        
+        // 复制图片下载链接
+        copyImagesBtn.addEventListener('click', () => {
+            if (imagesDownloadUrlElement.value) {
+                imagesDownloadUrlElement.select();
+                document.execCommand('copy');
+                showToast('图片下载链接已复制，您可以粘贴到下载工具中使用', 'success');
+            } else {
+                showToast('没有可复制的链接', 'error');
+            }
+        });
+        
+        // 保存全部按钮
+        saveAllBtn.addEventListener('click', () => {
+            if (!currentMediaData || currentMediaData.code !== 200) {
+                showToast('没有可保存的内容', 'error');
+                return;
+            }
+            
+            const data = currentMediaData.data;
+            
+            if (data.type === 'image' && data.images && data.images.length > 0) {
+                showToast(`开始保存 ${data.images.length} 张图片`, 'info');
+                
+                // 逐个下载图片
+                data.images.forEach((url, index) => {
+                    // 延迟下载，避免浏览器限制
+                    setTimeout(() => {
+                        downloadImage(url, index + 1);
+                    }, index * 1000);
+                });
+                
+                showToast(`已开始下载全部 ${data.images.length} 张图片`, 'success');
+            } else if (data.type !== 'image' && data.url) {
+                // 视频保存
+                const link = document.createElement('a');
+                link.href = data.url;
+                link.download = `${data.title || 'video'}.mp4`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast('视频保存已开始', 'success');
+            } else {
+                showToast('没有可保存的内容', 'error');
+            }
+        });
+        
+        // 显示/隐藏加载状态
+        function showLoading(show) {
+            if (show) {
+                parseBtn.disabled = true;
+                parseBtn.querySelector('span').textContent = '解析中';
+                loadingIndicator.classList.remove('hidden');
+            } else {
+                parseBtn.disabled = false;
+                parseBtn.querySelector('span').textContent = '解析内容';
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+        
+        // 显示结果
+        function showResults() {
+            resultContainer.classList.remove('hidden');
+            resultContainer.classList.add('opacity-100');
+            // 平滑滚动到结果区域
+            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // 隐藏结果
+        function hideResults() {
+            resultContainer.classList.add('hidden');
+            resultContainer.classList.remove('opacity-100');
+        }
+        
+        // 显示错误
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorContainer.classList.remove('hidden');
+            // 平滑滚动到错误区域
+            errorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // 隐藏错误
+        function hideError() {
+            errorContainer.classList.add('hidden');
+        }
+        
+        // 显示提示消息
+        function showToast(message, type = 'info') {
+            toastMessage.textContent = message;
+            
+            // 设置图标和样式
+            if (type === 'success') {
+                toastIcon.className = 'fa fa-check text-green-400';
+                toast.classList.add('bg-green-800');
+                toast.classList.remove('bg-red-800', 'bg-blue-800');
+            } else if (type === 'error') {
+                toastIcon.className = 'fa fa-exclamation-circle text-red-400';
+                toast.classList.add('bg-red-800');
+                toast.classList.remove('bg-green-800', 'bg-blue-800');
+            } else {
+                toastIcon.className = 'fa fa-info-circle text-blue-400';
+                toast.classList.add('bg-blue-800');
+                toast.classList.remove('bg-green-800', 'bg-red-800');
+            }
+            
+            // 显示提示
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            // 3秒后隐藏
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+        
+        // 更新调用次数 (模拟)
+        function updateCallCounts() {
+            const totalCallsElement = document.getElementById('total-calls');
+            const todayCallsElement = document.getElementById('today-calls');
+            
+            // 从元素中获取当前次数
+            let totalCalls = parseInt(totalCallsElement.textContent.match(/\d+/)[0]) || 0;
+            let todayCalls = parseInt(todayCallsElement.textContent.match(/\d+/)[0]) || 0;
+            
+            // 增加次数并更新显示
+            totalCallsElement.textContent = `总调用: ${++totalCalls}次`;
+            todayCallsElement.textContent = `今日调用: ${++todayCalls}次`;
+        }
+    </script>
+</body>
+</html>
